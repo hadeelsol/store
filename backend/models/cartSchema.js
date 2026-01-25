@@ -38,10 +38,9 @@ cartSchema.pre('save', async function(next) {
     }, 0);
     
     this.total = this.subtotal + this.shipping;
-    
-    next();
+  
   } catch (error) {
-    next(error);
+    console.error('Cart save error:', error);
   }
 });
 

@@ -126,7 +126,6 @@ async function registerUser(userData) {
       return { error: "Email already exists" };
     }
     
-    // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 12);
     
    

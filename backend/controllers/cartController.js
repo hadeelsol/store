@@ -1,11 +1,8 @@
-// controllers/cartController.js
 const CartService = require('../services/cartServices');
 
-// 1. Get user's cart
 const getCartController = async (req, res) => {
   try {
     const cart = await CartService.getCart(req.user._id);
-    
     return res.status(200).json({
       success: true,
       data: cart
@@ -19,7 +16,6 @@ const getCartController = async (req, res) => {
   }
 };
 
-// 2. Add item to cart
 const addToCart = async (req, res) => {
   try {
     const { productId, quantity } = req.body;
@@ -51,7 +47,6 @@ const addToCart = async (req, res) => {
   }
 };
 
-// 3. Update cart item quantity
 const updateCartItem = async (req, res) => {
   try {
     const { itemId } = req.params;
@@ -84,7 +79,6 @@ const updateCartItem = async (req, res) => {
   }
 };
 
-// 4. Remove item from cart
 const removeFromCart = async (req, res) => {
   try {
     const { itemId } = req.params;
@@ -105,7 +99,6 @@ const removeFromCart = async (req, res) => {
   }
 };
 
-// 5. Clear cart (remove all items)
 const clearCartController = async (req, res) => {
   try {
     const cart = await CartService.clearCart(req.user._id);
@@ -124,7 +117,6 @@ const clearCartController = async (req, res) => {
   }
 };
 
-// 6. Update shipping cost
 const updateShippingController = async (req, res) => {
   try {
     const { shipping } = req.body;
@@ -155,7 +147,6 @@ const updateShippingController = async (req, res) => {
   }
 };
 
-// 7. Get cart item count
 const getCartItemCount = async (req, res) => {
   try {
     const count = await CartService.getItemCount(req.user._id);

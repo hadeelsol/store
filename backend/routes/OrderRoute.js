@@ -4,7 +4,7 @@ const router = express.Router();
 const orderController = require('../controllers/orderController');
 const { protect, adminOnly } = require('../MiddleWare/Auth');
 
-// Customer routes (authenticated users)
+
 router.use(protect);
 
 router.post('/checkout', orderController.createOrder);  // Customer creates order

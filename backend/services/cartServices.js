@@ -38,6 +38,19 @@ async function createCart(userId) {
   }
 }
 
+// Helper function to calculate cart totals
+async function calculateCartTotals(cart) {
+  const allCartItems = await CartItem.find({ _id: { $in: cart.items } });
+  
+  cart.subtotal = allCartItems.reduce((sum, item) => {
+    const discountedPrice = item.price - (item.price * item.discount / 100);
+    return sum + (discountedPrice * item.quantity);
+  }, 0);
+  
+  cart.total = cart.subtotal + cart.shipping;
+  return cart;
+}
+
 async function addItem(userId, productId, quantity = 1) {
   try {
     const product = await Product.findById(productId);
@@ -64,10 +77,8 @@ async function addItem(userId, productId, quantity = 1) {
     });
     
     if (cartItem) {
-      // Update quantity
       cartItem.quantity += quantity;
     } else {
-      // Create new cart item
       cartItem = new CartItem({
         product: productId,
         quantity,
@@ -82,8 +93,11 @@ async function addItem(userId, productId, quantity = 1) {
     // Add item to cart if not already there
     if (!cart.items.includes(cartItem._id)) {
       cart.items.push(cartItem._id);
-      await cart.save();
     }
+    
+    // Calculate and update totals
+    cart = await calculateCartTotals(cart);
+    await cart.save();
     
     return await getCart(userId);
     
@@ -106,6 +120,7 @@ async function updateItem(userId, itemId, quantity) {
     if (!cartItem) {
       throw new Error('Item not found in cart');
     }
+    
     // Check product stock
     const product = await Product.findById(cartItem.product);
     if (product.quantity < quantity) {
@@ -117,7 +132,10 @@ async function updateItem(userId, itemId, quantity) {
     
     // Update cart totals
     const cart = await Cart.findOne({ user: userId });
-    await cart.save();
+    if (cart) {
+      await calculateCartTotals(cart);
+      await cart.save();
+    }
     
     return await getCart(userId);  
   } catch (error) {
@@ -135,9 +153,14 @@ async function removeItem(userId, itemId) {
     if (!cartItem) {
       throw new Error('Item not found');
     }
+    
     const cart = await Cart.findOne({ user: userId });
-    cart.items = cart.items.filter(item => item.toString() !== itemId);
-    await cart.save();
+    if (cart) {
+      cart.items = cart.items.filter(item => item.toString() !== itemId);
+      await calculateCartTotals(cart);
+      await cart.save();
+    }
+    
     return await getCart(userId);
   } catch (error) {
     console.error('Remove item error:', error);
@@ -145,7 +168,6 @@ async function removeItem(userId, itemId) {
   }
 }
 
-// Clear cart
 async function clearCart(userId) {
   try {
     const cart = await Cart.findOne({ user: userId });
@@ -179,6 +201,7 @@ async function updateShipping(userId, shippingCost) {
     }
     
     cart.shipping = shippingCost;
+    await calculateCartTotals(cart);
     await cart.save();
     
     return await getCart(userId);

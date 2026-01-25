@@ -1,10 +1,9 @@
-// models/orderSchema.js
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
-    required: true,
+    required: true, 
     unique: true
   },
   user: {
@@ -14,7 +13,7 @@ const orderSchema = new mongoose.Schema({
   },
   items: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'OrderItem'
+    ref: 'CartItem'
   }],
   subtotal: {
     type: Number,
@@ -41,21 +40,15 @@ const orderSchema = new mongoose.Schema({
   },
   orderStatus: {
     type: String,
-    enum: ['pending', 'confirmed', 'preparing', 'on_the_way', 'delivered', 'cancelled'],
+    enum: ['pending', 'confirmed', 'preparing', 'delivered', 'cancelled'],
     default: 'pending'
-  },
-  estimatedDelivery: {
-    type: Date
-  },
-  deliveredAt: {
-    type: Date
   }
 }, {
   timestamps: true
 });
 
-// Generate order number before saving
-orderSchema.pre('save', function(next) {
+orderSchema.pre('validate', function(next) {
+  console.log('🔧 Order validation middleware running');
   if (!this.orderNumber) {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
@@ -63,18 +56,9 @@ orderSchema.pre('save', function(next) {
     const day = date.getDate().toString().padStart(2, '0');
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     this.orderNumber = `ORD${year}${month}${day}${random}`;
+    console.log('✅ Generated order number:', this.orderNumber);
   }
-  next();
-});
-
-// Calculate delivery time (30-60 minutes)
-orderSchema.pre('save', function(next) {
-  if (this.isNew && !this.estimatedDelivery) {
-    const now = new Date();
-    const deliveryTime = 30 + Math.floor(Math.random() * 30); // 30-60 minutes
-    this.estimatedDelivery = new Date(now.getTime() + deliveryTime * 60000);
-  }
-  next();
+  
 });
 
 module.exports = mongoose.model('Order', orderSchema);

@@ -1,12 +1,7 @@
 // services/productServices.js - KEEP ONLY THIS
 const Product = require("../models/productSchema");
 
-async function getAllProducts({
-  page = 1,
-  limit = 10,
-  categoryId = null,
-  search = ""
-}) {
+async function getAllProducts({page = 1,limit = 10,categoryId = null,search = ""}) {
   try {
     const skip = (page - 1) * limit;
     const filter = {};

@@ -1,23 +1,34 @@
-// controllers/orderController.js
 const orderService = require('../services/orderServices');
 
-// Customer: Create order from cart
 const createOrder = async (req, res) => {
   try {
-    const { shippingAddress, paymentMethod, notes } = req.body;
+    console.log('📞 Checkout request received');
+    const { deliveryAddress, customerPhone, customerNotes } = req.body;
     
-    if (!shippingAddress || !shippingAddress.address) {
+    // Validation
+    if (!deliveryAddress || !deliveryAddress.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Shipping address is required'
+        message: 'Delivery address is required'
       });
     }
     
+    if (!customerPhone || !customerPhone.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer phone number is required'
+      });
+    }
+    
+    console.log('📋 Order data validated');
+    
     const order = await orderService.createOrderFromCart(req.user._id, {
-      shippingAddress,
-      paymentMethod,
-      notes
+      deliveryAddress,      
+      customerPhone,        
+      customerNotes       
     });
+    
+    console.log('✅ Order created, sending response');
     
     return res.status(201).json({
       success: true,
@@ -25,6 +36,7 @@ const createOrder = async (req, res) => {
       data: order
     });
   } catch (error) {
+    console.error('❌ Checkout error:', error.message);
     return res.status(400).json({
       success: false,
       message: error.message
@@ -32,7 +44,6 @@ const createOrder = async (req, res) => {
   }
 };
 
-// Customer: Get their orders
 const getMyOrders = async (req, res) => {
   try {
     const orders = await orderService.getCustomerOrders(req.user._id);
@@ -49,7 +60,6 @@ const getMyOrders = async (req, res) => {
   }
 };
 
-// Admin: Get all orders
 const getAllOrders = async (req, res) => {
   try {
     const { page, limit, status } = req.query;
@@ -72,7 +82,6 @@ const getAllOrders = async (req, res) => {
   }
 };
 
-// Admin: Get order by ID
 const getOrderById = async (req, res) => {
   try {
     const order = await orderService.getOrderById(req.params.id);
@@ -95,15 +104,15 @@ const getOrderById = async (req, res) => {
   }
 };
 
-// Admin: Update order status
 const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
+    const validStatuses = ['pending', 'confirmed', 'preparing', 'delivered', 'cancelled'];
     
-    if (!status || !['processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+    if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Valid status is required'
+        message: `Valid status required: ${validStatuses.join(', ')}`
       });
     }
     

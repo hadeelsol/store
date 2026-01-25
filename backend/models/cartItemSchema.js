@@ -36,7 +36,6 @@ const cartItemSchema = new mongoose.Schema({
 
 cartItemSchema.pre('save', function(next) {
   this.finalPrice = this.price - (this.price * this.discount / 100);
-  next();
 });
 
 module.exports = mongoose.model('CartItem', cartItemSchema);

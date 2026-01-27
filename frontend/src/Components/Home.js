@@ -1,9 +1,9 @@
 // frontend/src/pages/Home.js
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authService } from '../Components/auth';
+import authService from '../Components/auth';
 import categoryService from '../Components/categoryService';
-import productService from '../Components/productService'; // This is your productService
+import productService from '../Components/productService';
 import './Home.css';
 
 const Home = () => {
@@ -21,8 +21,24 @@ const Home = () => {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState('');
   
+  // Shopping cart state
+  const [cart, setCart] = useState(() => {
+    // Initialize cart from localStorage
+    const savedCart = localStorage.getItem('nexusmart_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
+  const [cartCount, setCartCount] = useState(0);
+  
   // Refs for scrolling
   const categoriesContainerRef = useRef(null);
+
+  // Calculate cart count whenever cart changes
+  useEffect(() => {
+    const count = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+    setCartCount(count);
+    // Save cart to localStorage
+    localStorage.setItem('nexusmart_cart', JSON.stringify(cart));
+  }, [cart]);
 
   // Fetch categories and featured products on component mount
   useEffect(() => {
@@ -30,21 +46,37 @@ const Home = () => {
     fetchFeaturedProducts();
   }, []);
 
-  // Function to get category image based on name
   const getCategoryImage = (categoryName) => {
-    const imageMap = {
-      'FRUIT': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
+    if (!categoryName) return `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80`;
+    
+    const categoryImageMap = {
+      'FRUITS': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
       'Fruits': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
-      'Vegetables': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&h=200&fit=crop',
-      'Meat': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
-      'Chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
-      'Cheese': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop',
-      'Dairy': 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300&h=200&fit=crop',
-      'Bakery': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&h=200&fit=crop'
+      'CHEESE': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop',
+      'cheese': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop',
+      'VEGETABLES': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&h=200&fit=crop',
+      'vegetables': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&h=200&fit=crop',
+      'CHICKEN': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
+      'chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
+      'MEAT': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
+      'meat': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
     };
     
-    // Return specific image or fallback
-    return imageMap[categoryName] || `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80`;
+    if (categoryImageMap[categoryName]) {
+      return categoryImageMap[categoryName];
+    }
+    
+    const lowerName = categoryName.toLowerCase();
+    if (categoryImageMap[lowerName]) {
+      return categoryImageMap[lowerName];
+    }
+    
+    const upperName = categoryName.toUpperCase();
+    if (categoryImageMap[upperName]) {
+      return categoryImageMap[upperName];
+    }
+    
+    return `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80`;
   };
 
   const fetchCategories = async () => {
@@ -55,7 +87,6 @@ const Home = () => {
       const result = await categoryService.getActiveCategories();
       
       if (result.success) {
-        // Add images to categories
         const categoriesWithImages = result.data.map(category => ({
           ...category,
           image: getCategoryImage(category.name)
@@ -72,93 +103,108 @@ const Home = () => {
     }
   };
 
- // In the fetchFeaturedProducts function, update how you process the products:
-const fetchFeaturedProducts = async () => {
-  setLoadingProducts(true);
-  setProductsError('');
-  
-  try {
-    const result = await productService.getAllProducts({ limit: 8 });
+  const fetchFeaturedProducts = async () => {
+    setLoadingProducts(true);
+    setProductsError('');
     
-    if (result.success) {
-      // UPDATED: Check for different response structures
-      let products = [];
+    try {
+      const result = await productService.getAllProducts({ limit: 4 });
       
-      // Check different possible structures
-      if (result.data.products && Array.isArray(result.data.products)) {
-        products = result.data.products;
-      } else if (result.data.items && Array.isArray(result.data.items)) {
-        products = result.data.items;
-      } else if (Array.isArray(result.data.data)) {
-        products = result.data.data;
-      } else if (Array.isArray(result.data)) {
-        products = result.data;
-      }
-      
-      // UPDATED: Process images properly
-      const productsWithImages = products.map(product => {
-        // First, try to get image from product.images array
-        let productImage = null;
+      if (result.success) {
+        let products = [];
         
-        if (product.images && Array.isArray(product.images) && product.images.length > 0) {
-          // Use the first image from the array
-          productImage = product.images[0];
+        if (result.data.products && Array.isArray(result.data.products)) {
+          products = result.data.products;
+        } else if (result.data.items && Array.isArray(result.data.items)) {
+          products = result.data.items;
+        } else if (Array.isArray(result.data.data)) {
+          products = result.data.data;
+        } else if (Array.isArray(result.data)) {
+          products = result.data;
+        }
+        
+        const productsWithImages = products.map(product => {
+          let productImage = null;
           
-          // If it's a relative path, prepend the base URL
-          if (productImage && !productImage.startsWith('http')) {
-            const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-            productImage = `${API_URL}${productImage.startsWith('/') ? '' : '/'}${productImage}`;
+          if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+            productImage = product.images[0];
+            
+            if (productImage && !productImage.startsWith('http')) {
+              const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+              productImage = `${API_URL}${productImage.startsWith('/') ? '' : '/'}${productImage}`;
+            }
           }
-        }
+          
+          if (!productImage) {
+            productImage = getCategoryImage(product.category?.name);
+          }
+          
+          return {
+            ...product,
+            image: productImage || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80'
+          };
+        });
         
-        // If no image found, use fallback
-        if (!productImage) {
-          productImage = getCategoryImage(product.category?.name);
-        }
+        setFeaturedProducts(productsWithImages);
         
-        return {
-          ...product,
-          image: productImage
-        };
-      });
-      
-      setFeaturedProducts(productsWithImages);
-      
-      if (productsWithImages.length === 0) {
-        setProductsError('No products available at the moment.');
+        if (productsWithImages.length === 0) {
+          setProductsError('No products available at the moment.');
+        }
+      } else {
+        setProductsError(result.message || 'Failed to load products');
       }
-    } else {
-      setProductsError(result.message || 'Failed to load products');
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setProductsError('Unable to load featured products.');
+    } finally {
+      setLoadingProducts(false);
     }
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    setProductsError('Unable to load featured products.');
-  } finally {
-    setLoadingProducts(false);
-  }
-};
+  };
 
-  // Handle category click
+  // SHOPPING CART FUNCTIONS
+  const addToCart = (product) => {
+    if (!isAuthenticated) {
+      alert('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+    
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item._id === product._id);
+      
+      if (existingItem) {
+        // Increase quantity if item already exists
+        return prevCart.map(item =>
+          item._id === product._id
+            ? { ...item, quantity: (item.quantity || 1) + 1 }
+            : item
+        );
+      } else {
+        // Add new item to cart
+        return [...prevCart, { ...product, quantity: 1 }];
+      }
+    });
+    
+    // Show success message
+    alert(`✅ ${product.name} added to cart!`);
+  };
+
   const handleCategoryClick = (categoryId) => {
     navigate(`/products?category=${categoryId}`);
   };
 
-  // Handle view all products
   const handleViewAllProducts = () => {
     navigate('/products');
   };
 
-  // Handle view all categories
   const handleViewAllCategories = () => {
     navigate('/categories');
   };
 
-  // Handle product click
   const handleProductClick = (productId) => {
     navigate(`/product/${productId}`);
   };
 
-  // Scroll functions
   const scrollLeft = () => {
     if (categoriesContainerRef.current) {
       categoriesContainerRef.current.scrollBy({
@@ -180,6 +226,21 @@ const fetchFeaturedProducts = async () => {
   const handleLogout = () => {
     authService.logout();
     navigate('/');
+  };
+
+  const handleCheckout = () => {
+    if (!isAuthenticated) {
+      alert('Please login to proceed to checkout');
+      navigate('/login');
+      return;
+    }
+    
+    if (cart.length === 0) {
+      alert('Your cart is empty! Add some products first.');
+      return;
+    }
+    
+    navigate('/checkout');
   };
 
   return (
@@ -206,13 +267,81 @@ const fetchFeaturedProducts = async () => {
           <div className="navbar-auth">
             {isAuthenticated ? (
               <>
+                {/* Cart Icon */}
+                <div className="cart-wrapper">
+                  <Link to="/cart" className="cart-icon">
+                    🛒
+                    {cartCount > 0 && (
+                      <span className="cart-count-badge">{cartCount}</span>
+                    )}
+                  </Link>
+                  {cartCount > 0 && (
+                    <div className="cart-dropdown">
+                      <div className="cart-dropdown-header">
+                        <span>Cart ({cartCount} items)</span>
+                        <Link to="/cart">View Cart</Link>
+                      </div>
+                      <div className="cart-dropdown-items">
+                        {cart.slice(0, 3).map(item => (
+                          <div key={item._id} className="cart-dropdown-item">
+                            <img src={item.image} alt={item.name} />
+                            <div className="cart-item-info">
+                              <span className="cart-item-name">{item.name}</span>
+                              <span className="cart-item-price">
+                                ${item.discount > 0 
+                                  ? ((item.price * (100 - item.discount)) / 100).toFixed(2)
+                                  : item.price.toFixed(2)
+                                } x {item.quantity || 1}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        {cart.length > 3 && (
+                          <div className="cart-dropdown-more">
+                            +{cart.length - 3} more items
+                          </div>
+                        )}
+                      </div>
+                      <div className="cart-dropdown-footer">
+                        <div className="cart-total">
+                          <span>Total:</span>
+                          <span>
+                            $
+                            {cart.reduce((total, item) => {
+                              const price = item.discount > 0 
+                                ? item.price * (100 - item.discount) / 100 
+                                : item.price;
+                              return total + (price * (item.quantity || 1));
+                            }, 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <button 
+                          onClick={handleCheckout}
+                          className="checkout-btn-small"
+                        >
+                          Checkout →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <span className="welcome-text">
                   Welcome, {currentUser?.name || 'User'}!
                 </span>
-                <Link to="/profile" className="auth-btn profile-btn">
-                  <span className="btn-icon">👤</span>
-                  Profile
-                </Link>
+                
+                {authService.isAdmin() ? (
+                  <Link to="/admin/dashboard" className="auth-btn admin-btn">
+                    <span className="btn-icon">⚙️</span>
+                    Admin Panel
+                  </Link>
+                ) : (
+                  <Link to="/orders" className="auth-btn orders-btn">
+                    <span className="btn-icon">📦</span>
+                    My Orders
+                  </Link>
+                )}
+                
                 <button onClick={handleLogout} className="auth-btn logout-btn">
                   <span className="btn-icon">🚪</span>
                   Logout
@@ -251,6 +380,14 @@ const fetchFeaturedProducts = async () => {
                 Join Now
               </Link>
             )}
+            {isAuthenticated && cartCount > 0 && (
+              <button 
+                onClick={handleCheckout}
+                className="hero-btn checkout-hero-btn"
+              >
+                🛒 Checkout ({cartCount} items)
+              </button>
+            )}
           </div>
         </div>
         <div className="hero-image">
@@ -260,7 +397,7 @@ const fetchFeaturedProducts = async () => {
         </div>
       </section>
 
-      {/* Categories Section - Horizontal Scroll */}
+      {/* Categories Section */}
       <section className="categories-section">
         <div className="section-header">
           <h2 className="section-title">Shop by Category</h2>
@@ -283,12 +420,10 @@ const fetchFeaturedProducts = async () => {
           </div>
         ) : categories.length > 0 ? (
           <div className="categories-container">
-            {/* Left Scroll Button */}
             <button className="scroll-btn left-scroll-btn" onClick={scrollLeft}>
               ←
             </button>
             
-            {/* Categories Horizontal Scroll */}
             <div className="categories-scroll" ref={categoriesContainerRef}>
               {categories.map((category) => (
                 <div 
@@ -320,7 +455,6 @@ const fetchFeaturedProducts = async () => {
               ))}
             </div>
             
-            {/* Right Scroll Button */}
             <button className="scroll-btn right-scroll-btn" onClick={scrollRight}>
               →
             </button>
@@ -338,7 +472,7 @@ const fetchFeaturedProducts = async () => {
         </div>
       </section>
 
-      {/* Featured Products Section */}
+      {/* Featured Products Section - UPDATED WITH ADD TO CART */}
       <section className="products-section">
         <div className="section-header">
           <h2 className="section-title">Featured Products</h2>
@@ -362,48 +496,128 @@ const fetchFeaturedProducts = async () => {
         ) : featuredProducts.length > 0 ? (
           <>
             <div className="products-grid">
-              {featuredProducts.map((product) => (
-                <div 
-                  key={product._id} 
-                  className="product-card"
-                  onClick={() => handleProductClick(product._id)}
-                >
-                  <div className="product-image-container">
-                    <img 
-                      src={product.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80'} 
-                      alt={product.name}
-                      className="product-image"
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80';
-                      }}
-                    />
-                    {product.discount > 0 && (
-                      <span className="product-discount">
-                        -{product.discount}%
-                      </span>
-                    )}
-                  </div>
-                  <div className="product-content">
-                    <h3 className="product-title">{product.name}</h3>
-                    <p className="product-category">{product.category?.name || 'Uncategorized'}</p>
-                    <div className="product-price">
-                      {product.discount > 0 ? (
-                        <>
-                          <span className="current-price">
-                            ${((product.price * (100 - product.discount)) / 100).toFixed(2)}
-                          </span>
-                          <span className="original-price">${product.price?.toFixed(2) || '0.00'}</span>
-                        </>
-                      ) : (
-                        <span className="current-price">${product.price?.toFixed(2) || '0.00'}</span>
+              {featuredProducts.map((product) => {
+                const isInCart = cart.some(item => item._id === product._id);
+                const cartItem = cart.find(item => item._id === product._id);
+                
+                return (
+                  <div 
+                    key={product._id} 
+                    className="product-card"
+                  >
+                    <div 
+                      className="product-image-container"
+                      onClick={() => handleProductClick(product._id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        className="product-image"
+                        onError={(e) => {
+                          console.log('Product image error:', product.name);
+                          e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80';
+                        }}
+                      />
+                      {product.discount > 0 && (
+                        <span className="product-discount">
+                          -{product.discount}%
+                        </span>
                       )}
                     </div>
-                    <p className="product-description">
-                      {product.description?.substring(0, 60)}...
-                    </p>
+                    <div className="product-content">
+                      <h3 
+                        className="product-title"
+                        onClick={() => handleProductClick(product._id)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {product.name}
+                      </h3>
+                      <p className="product-category">
+                        {product.category?.name || 'Uncategorized'}
+                      </p>
+                      <div className="product-price">
+                        {product.discount > 0 ? (
+                          <>
+                            <span className="current-price">
+                              ${((product.price * (100 - product.discount)) / 100).toFixed(2)}
+                            </span>
+                            <span className="original-price">
+                              ${product.price?.toFixed(2) || '0.00'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="current-price">
+                            ${product.price?.toFixed(2) || '0.00'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="product-description">
+                        {product.description?.substring(0, 60)}...
+                      </p>
+                      
+                      {/* ADD TO CART BUTTONS */}
+                      <div className="product-actions">
+                        {isAuthenticated ? (
+                          isInCart ? (
+                            <div className="cart-controls">
+                              <button 
+                                className="cart-action-btn minus"
+                                onClick={() => {
+                                  if (cartItem.quantity <= 1) {
+                                    setCart(cart.filter(item => item._id !== product._id));
+                                  } else {
+                                    setCart(cart.map(item =>
+                                      item._id === product._id
+                                        ? { ...item, quantity: item.quantity - 1 }
+                                        : item
+                                    ));
+                                  }
+                                }}
+                              >
+                                −
+                              </button>
+                              <span className="cart-quantity">
+                                {cartItem.quantity} in cart
+                              </span>
+                              <button 
+                                className="cart-action-btn plus"
+                                onClick={() => addToCart(product)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          ) : (
+                            <button 
+                              className="add-to-cart-btn"
+                              onClick={() => addToCart(product)}
+                            >
+                              🛒 Add to Cart
+                            </button>
+                          )
+                        ) : (
+                          <button 
+                            className="add-to-cart-btn login-required"
+                            onClick={() => {
+                              alert('Please login to add items to cart');
+                              navigate('/login');
+                            }}
+                          >
+                            🔒 Login to Buy
+                          </button>
+                        )}
+                        
+                        <button 
+                          className="view-details-btn"
+                          onClick={() => handleProductClick(product._id)}
+                        >
+                          View Details →
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
             <div className="view-all-products">
@@ -421,6 +635,37 @@ const fetchFeaturedProducts = async () => {
           </div>
         )}
       </section>
+
+      {/* Quick Cart Summary (for logged in users) */}
+      {isAuthenticated && cart.length > 0 && (
+        <section className="cart-summary-section">
+          <div className="cart-summary-card">
+            <div className="cart-summary-content">
+              <h3>🛒 Your Cart ({cartCount} items)</h3>
+              <div className="cart-summary-total">
+                <span>Total:</span>
+                <span className="total-amount">
+                  $
+                  {cart.reduce((total, item) => {
+                    const price = item.discount > 0 
+                      ? item.price * (100 - item.discount) / 100 
+                      : item.price;
+                    return total + (price * (item.quantity || 1));
+                  }, 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+            <div className="cart-summary-actions">
+              <Link to="/cart" className="btn view-cart-btn">
+                View Cart
+              </Link>
+              <button onClick={handleCheckout} className="btn checkout-btn-main">
+                Proceed to Checkout →
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="features-section">
@@ -507,6 +752,7 @@ const fetchFeaturedProducts = async () => {
             {isAuthenticated ? (
               <>
                 <Link to="/profile" className="footer-link">My Profile</Link>
+                <Link to="/cart" className="footer-link">My Cart ({cartCount})</Link>
                 <Link to="/orders" className="footer-link">My Orders</Link>
                 <button onClick={handleLogout} className="footer-link logout-link">
                   Logout

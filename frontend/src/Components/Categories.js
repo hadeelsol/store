@@ -1,8 +1,8 @@
 // frontend/src/pages/Categories.js
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authService } from '../Components/auth';
-import categoryService from './categoryService';
+import authService from '../Components/auth';
+import categoryService from '../Components/categoryService';
 import './Categories.css';
 
 const Categories = () => {
@@ -23,16 +23,50 @@ const Categories = () => {
 
   // Function to get category image based on name
   const getCategoryImage = (categoryName) => {
+    // Handle the typo "FRIUTS" from your database
     const imageMap = {
-      'FRUIT': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
-      'Vegetables': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&h=200&fit=crop',
-      'Meat': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
-      'Chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
-      'Cheese': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop'
+      'FRIUTS': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
+      'friuts': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
+      'FRUITS': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
+      'fruits': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
+      
+      'CHEESE': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop',
+      'cheese': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop',
+      
+      'VEGETABLES': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&h=200&fit=crop',
+      'vegetables': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&h=200&fit=crop',
+      
+      'CHICKEN': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
+      'chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
+      
+      'MEAT': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
+      'meat': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
     };
     
-    // Return specific image or fallback
-    return imageMap[categoryName] || `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80`;
+    console.log(`Getting image for category: "${categoryName}"`);
+    
+    // First try exact match
+    if (imageMap[categoryName]) {
+      console.log(`Exact match found for "${categoryName}"`);
+      return imageMap[categoryName];
+    }
+    
+    // Try lowercase
+    const lowerName = categoryName.toLowerCase();
+    if (imageMap[lowerName]) {
+      console.log(`Lowercase match found for "${categoryName}" -> "${lowerName}"`);
+      return imageMap[lowerName];
+    }
+    
+    // Try uppercase
+    const upperName = categoryName.toUpperCase();
+    if (imageMap[upperName]) {
+      console.log(`Uppercase match found for "${categoryName}" -> "${upperName}"`);
+      return imageMap[upperName];
+    }
+    
+    console.log(`No match found for "${categoryName}", using fallback`);
+    return `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80`;
   };
 
   const fetchCategories = async () => {
@@ -40,20 +74,31 @@ const Categories = () => {
     setError('');
     
     try {
+      console.log('Fetching categories from Categories.js...');
       const result = await categoryService.getActiveCategories();
+      console.log('Categories API Response in Categories.js:', result);
       
       if (result.success) {
-        // Add images to categories
-        const categoriesWithImages = result.data.map(category => ({
-          ...category,
-          image: getCategoryImage(category.name)
-        }));
+        console.log('Raw categories data:', result.data);
+        // Add images to categories with debugging
+        const categoriesWithImages = result.data.map(category => {
+          console.log(`Processing category: ${category.name} (ID: ${category._id})`);
+          const image = getCategoryImage(category.name);
+          console.log(`Image for ${category.name}:`, image);
+          
+          return {
+            ...category,
+            image: image
+          };
+        });
+        
+        console.log('Categories with images:', categoriesWithImages);
         setCategories(categoriesWithImages);
       } else {
         setError(result.message || 'Failed to load categories');
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('Error fetching categories in Categories.js:', error);
       setError('Unable to load categories. Please try again later.');
     } finally {
       setLoading(false);
@@ -68,12 +113,12 @@ const Categories = () => {
   // Filter categories based on search term
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
     <div className="categories-page">
-      {/* Navigation Bar - Same as Home */}
+      {/* Navigation Bar */}
       <nav className="navbar">
         <div className="navbar-container">
           <div className="navbar-logo">
@@ -188,7 +233,7 @@ const Categories = () => {
                   {filteredCategories.map((category) => (
                     <Link 
                       key={category._id} 
-                      to={`/products/category/${category._id}`}
+                     to={`/products/category/${category._id}`}
                       className="category-card"
                     >
                       <div className="category-image-container">
@@ -198,6 +243,7 @@ const Categories = () => {
                           className="category-image"
                           loading="lazy"
                           onError={(e) => {
+                            console.log('Image error for category:', category.name, 'Current src:', e.target.src);
                             e.target.src = `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80`;
                           }}
                         />
@@ -208,8 +254,10 @@ const Categories = () => {
                       </div>
                       <div className="category-content">
                         <h3 className="category-title">{category.name}</h3>
+                        <p className="category-description">
+                          {category.description || 'No description available'}
+                        </p>
                         <div className="category-footer">
-                          
                           <span className="category-arrow">→</span>
                         </div>
                       </div>
@@ -248,7 +296,7 @@ const Categories = () => {
         </div>
       </main>
 
-      {/* Footer - Same as Home */}
+      {/* Footer */}
       <footer className="categories-footer">
         <div className="footer-content">
           <div className="footer-section">

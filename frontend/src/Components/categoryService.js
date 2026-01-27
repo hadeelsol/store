@@ -1,17 +1,14 @@
-// frontend/src/services/categoryService.js
-import api from './api'; // Your existing axios instance
+import api from './api'; 
 
 export const categoryService = {
-  // Get all active categories
   getActiveCategories: async () => {
     try {
       console.log('📋 Fetching active categories...');
-      
-      // TRY DIFFERENT ENDPOINTS:
+
       const endpoints = [
-        '/categories/active',  // First try
-        '/api/categories/active', // With /api prefix
-        'http://localhost:5000/api/categories/active' // Full URL
+        '/categories/active',  
+        '/api/categories/active', 
+        'http://localhost:5000/api/categories/active' 
       ];
       
       let response;

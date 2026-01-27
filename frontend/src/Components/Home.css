@@ -11,7 +11,7 @@
 
 /* Navigation Bar */
 .navbar {
-  background: white;
+  background: white !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
@@ -56,7 +56,7 @@
 
 .nav-link {
   text-decoration: none;
-  color: #333;
+  color: #333 !important; /* Force dark color */
   font-weight: 500;
   font-size: 16px;
   padding: 8px 0;
@@ -65,11 +65,11 @@
 }
 
 .nav-link:hover {
-  color: #5d88d3;
+  color: #5d88d3 !important;
 }
 
 .nav-link.active {
-  color: #5d88d3;
+  color: #5d88d3 !important;
 }
 
 .nav-link.active::after {
@@ -91,7 +91,7 @@
 
 .welcome-text {
   font-size: 14px;
-  color: #666;
+  color: #666 !important; /* Ensure this is dark */
   margin-right: 10px;
 }
 
@@ -111,18 +111,18 @@
 
 .login-btn {
   background: transparent;
-  color: #5d88d3;
+  color: #5d88d3 !important; /* Ensure color is applied */
   border: 1px solid #5d88d3;
 }
 
 .login-btn:hover {
   background: #5d88d3;
-  color: white;
+  color: white !important;
 }
 
 .register-btn {
   background: linear-gradient(135deg, #5d88d3 0%, #545c6c 100%);
-  color: white;
+  color: white !important;
 }
 
 .register-btn:hover {
@@ -132,24 +132,24 @@
 
 .profile-btn {
   background: #f0f7ff;
-  color: #5d88d3;
+  color: #5d88d3 !important; /* Ensure color is applied */
   border: 1px solid #d1e3ff;
 }
 
 .profile-btn:hover {
   background: #5d88d3;
-  color: white;
+  color: white !important;
 }
 
 .logout-btn {
   background: #fff5f5;
-  color: #e53e3e;
+  color: #e53e3e !important; /* Ensure color is applied */
   border: 1px solid #fed7d7;
 }
 
 .logout-btn:hover {
   background: #e53e3e;
-  color: white;
+  color: white !important;
 }
 
 .btn-icon {
@@ -529,7 +529,9 @@
     width: 250px;
     height: 250px;
   }
-}/* Alternative: Icon on left, text flowing right */
+}
+
+/* Alternative: Icon on left, text flowing right */
 /* Features Section - Side by side layout */
 .features-section {
   max-width: 1200px;
@@ -678,6 +680,7 @@
     font-size: 11px;
   }
 }
+
 .feature-card {
   background: white;
   padding: 20px;
@@ -721,7 +724,9 @@
   color: #666;
   line-height: 1.4;
   margin: 0;
-}/* Categories Section - Horizontal Scroll */
+}
+
+/* Categories Section - Horizontal Scroll */
 .categories-section {
   max-width: 1200px;
   margin: 60px auto;
@@ -970,71 +975,6 @@
   box-shadow: 0 5px 15px rgba(93, 136, 211, 0.3);
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .categories-container {
-    padding: 0 30px;
-  }
-  
-  .scroll-btn {
-    width: 35px;
-    height: 35px;
-    font-size: 16px;
-  }
-  
-  .category-card {
-    width: 240px;
-  }
-  
-  .category-image-container {
-    height: 150px;
-  }
-  
-  .category-content {
-    padding: 15px;
-  }
-  
-  .category-title {
-    font-size: 16px;
-  }
-  
-  .category-desc {
-    font-size: 13px;
-  }
-  
-  .section-title {
-    font-size: 28px;
-  }
-}
-
-@media (max-width: 480px) {
-  .categories-container {
-    padding: 0 20px;
-  }
-  
-  .scroll-btn {
-    display: none; /* Hide scroll buttons on mobile */
-  }
-  
-  .categories-scroll {
-    gap: 15px;
-    padding: 10px 5px;
-  }
-  
-  .category-card {
-    width: 200px;
-  }
-  
-  .category-image-container {
-    height: 120px;
-  }
-  
-  .view-all-btn {
-    padding: 10px 24px;
-    font-size: 14px;
-  }
-}/* frontend/src/pages/Home.css - Add these styles */
-
 /* Products Section */
 .products-section {
   padding: 4rem 2rem;
@@ -1233,14 +1173,386 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Responsive adjustments */
+/* Cart Wrapper */
+.cart-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.cart-icon {
+  position: relative;
+  font-size: 1.5rem;
+  text-decoration: none;
+  color: #333 !important; /* Ensure cart icon is dark */
+  padding: 0.5rem;
+  display: inline-block;
+}
+
+.cart-count-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff4757;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 320px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  z-index: 1000;
+  display: none;
+}
+
+.cart-wrapper:hover .cart-dropdown {
+  display: block;
+}
+
+.cart-dropdown-header {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-dropdown-header a {
+  color: #007bff;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.cart-dropdown-items {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.cart-dropdown-item {
+  display: flex;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f5f5f5;
+  align-items: center;
+}
+
+.cart-dropdown-item img {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 1rem;
+}
+
+.cart-item-info {
+  flex: 1;
+}
+
+.cart-item-name {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #333;
+}
+
+.cart-item-price {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.cart-dropdown-more {
+  padding: 0.5rem 1rem;
+  text-align: center;
+  color: #666;
+  font-size: 0.85rem;
+  background: #f8f9fa;
+}
+
+.cart-dropdown-footer {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.checkout-btn-small {
+  width: 100%;
+  padding: 0.75rem;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.checkout-btn-small:hover {
+  background: #218838;
+}
+
+/* Product card actions */
+.product-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.add-to-cart-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.add-to-cart-btn:hover {
+  background: #0056b3;
+}
+
+.add-to-cart-btn.login-required {
+  background: #6c757d;
+}
+
+.add-to-cart-btn.login-required:hover {
+  background: #545b62;
+}
+
+.view-details-btn {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.view-details-btn:hover {
+  background: #e9ecef;
+}
+
+.cart-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.cart-action-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.cart-action-btn.minus {
+  color: #dc3545;
+}
+
+.cart-action-btn.plus {
+  color: #28a745;
+}
+
+.cart-quantity {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Cart summary section */
+.cart-summary-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem 0;
+  margin: 2rem 0;
+}
+
+.cart-summary-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.cart-summary-content h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+}
+
+.cart-summary-total {
+  font-size: 1.2rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.total-amount {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.cart-summary-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.view-cart-btn {
+  padding: 0.75rem 2rem;
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.view-cart-btn:hover {
+  background: white;
+  color: #764ba2;
+}
+
+.checkout-btn-main {
+  padding: 0.75rem 2rem;
+  background: white;
+  color: #764ba2;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.checkout-btn-main:hover {
+  background: #f8f9fa;
+}
+
+.checkout-hero-btn {
+  background: #28a745 !important;
+  color: white !important;
+}
+
+.checkout-hero-btn:hover {
+  background: #218838 !important;
+}
+
+/* Responsive styles */
 @media (max-width: 768px) {
-  .products-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  .cart-summary-card {
+    flex-direction: column;
+    text-align: center;
   }
   
-  .products-section,
-  .categories-section {
-    padding: 3rem 1rem;
+  .cart-summary-actions {
+    flex-direction: column;
+    width: 100%;
   }
+  
+  .cart-dropdown {
+    width: 280px;
+    right: -50px;
+  }
+  
+  .product-actions {
+    flex-direction: column;
+  }
+}
+
+/* CRITICAL FIX - Add these at the VERY END of the file */
+
+/* Force all navbar text to be dark */
+.navbar * {
+  color: #333 !important;
+}
+
+/* Specifically target all links in navbar */
+.navbar a,
+.navbar .nav-link,
+.navbar .logo-link,
+.navbar .cart-icon,
+.navbar .auth-btn {
+  color: #333 !important;
+}
+
+/* Fix hover states */
+.navbar a:hover,
+.navbar .nav-link:hover,
+.navbar .auth-btn:hover {
+  color: #5d88d3 !important;
+}
+
+/* Fix logout button specific color */
+.navbar .logout-btn {
+  color: #e53e3e !important;
+}
+
+.navbar .logout-btn:hover {
+  color: white !important;
+}
+
+/* Fix login button specific color */
+.navbar .login-btn {
+  color: #5d88d3 !important;
+}
+
+.navbar .login-btn:hover {
+  color: white !important;
+}
+
+/* Fix register button color */
+.navbar .register-btn {
+  color: white !important;
+}
+
+.navbar .register-btn:hover {
+  color: white !important;
+}
+
+/* Fix profile button color */
+.navbar .profile-btn {
+  color: #5d88d3 !important;
+}
+
+.navbar .profile-btn:hover {
+  color: white !important;
+}
+
+/* Fix welcome text color */
+.navbar .welcome-text {
+  color: #666 !important;
 }

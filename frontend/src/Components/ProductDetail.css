@@ -8,7 +8,27 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   background-color: #f8f9fa;
 }
+/* Add this to your Products.css to fix white link colors */
 
+/* Force link colors to be dark */
+.products-page .nav-link {
+  color: #333 !important;
+}
+
+/* Hover state */
+.products-page .nav-link:hover {
+  color: #5d88d3 !important;
+}
+
+/* Active state */
+.products-page .nav-link.active {
+  color: #5d88d3 !important;
+}
+
+/* Remove any white color inheritance */
+.products-page .navbar-links a {
+  color: #333 !important;
+}
 /* Navigation Bar - Same as other pages */
 .navbar {
   background: white;

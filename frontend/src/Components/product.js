@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { authService } from '../Components/auth';
-import categoryService from './categoryService';
-import productService from './productService';
+import categoryService from '../Components/categoryService';
+import productService from '../Components/productService';
 import './product.css';
 
 const Products = () => {
@@ -20,6 +20,14 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
+  // Shopping cart state
+  const [cart, setCart] = useState(() => {
+    // Initialize cart from localStorage
+    const savedCart = localStorage.getItem('nexusmart_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
+  const [cartCount, setCartCount] = useState(0);
+  
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -29,34 +37,49 @@ const Products = () => {
   // State for filters
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
-// Add this useEffect to debug the data coming from backend
-useEffect(() => {
-  if (products.length > 0) {
-    console.log('DEBUG - Products data from backend:');
-    products.forEach((product, index) => {
-      console.log(`Product ${index + 1}: ${product.name}`, {
-        id: product._id,
-        imagesArray: product.images, // Check if this exists
-        firstImage: product.images ? product.images[0] : 'No images',
-        imageProperty: product.image, // Check this property
-        category: product.category?.name
-      });
-      
-      // Test if image URL is accessible
-      if (product.images && product.images.length > 0) {
-        console.log(`Testing image URL: ${product.images[0]}`);
-        // You can try opening this URL in browser
-      }
-    });
-  }
-}, [products]);
+
+  // Calculate cart count whenever cart changes
+  useEffect(() => {
+    const count = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+    setCartCount(count);
+    // Save cart to localStorage
+    localStorage.setItem('nexusmart_cart', JSON.stringify(cart));
+  }, [cart]);
+
   // Get category ID from URL
   const getCategoryId = () => {
     if (categoryId) return categoryId;
     
     const searchParams = new URLSearchParams(location.search);
     return searchParams.get('category');
+  };
+
+  // SHOPPING CART FUNCTIONS
+  const addToCart = (product) => {
+    if (!isAuthenticated) {
+      alert('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+    
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item._id === product._id);
+      
+      if (existingItem) {
+        // Increase quantity if item already exists
+        return prevCart.map(item =>
+          item._id === product._id
+            ? { ...item, quantity: (item.quantity || 1) + 1 }
+            : item
+        );
+      } else {
+        // Add new item to cart
+        return [...prevCart, { ...product, quantity: 1 }];
+      }
+    });
+    
+    // Show success message
+    alert(`✅ ${product.name} added to cart!`);
   };
 
   // Fetch category details
@@ -83,28 +106,47 @@ useEffect(() => {
   // Function to get category image
   const getCategoryImage = (categoryName) => {
     const imageMap = {
-      'FRUIT': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
-      'Vegetables': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&h=200&fit=crop',
-      'Meat': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
-      'Chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
-      'Cheese': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop'
+      'FRUITS': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=800&h=400&fit=crop',
+      'Fruits': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=800&h=400&fit=crop',
+      'CHEESE': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=800&h=400&fit=crop',
+      'cheese': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=800&h=400&fit=crop',
+      'VEGETABLES': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=800&h=400&fit=crop',
+      'vegetables': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=800&h=400&fit=crop',
+      'CHICKEN': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800&h=400&fit=crop',
+      'chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=800&h=400&fit=crop',
+      'MEAT': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&h=400&fit=crop',
+      'meat': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&h=400&fit=crop',
     };
     
-    return imageMap[categoryName] || `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80`;
+    // Try exact match first
+    if (imageMap[categoryName]) {
+      return imageMap[categoryName];
+    }
+    
+    // Try uppercase
+    const upperName = categoryName.toUpperCase();
+    if (imageMap[upperName]) {
+      return imageMap[upperName];
+    }
+    
+    // Try lowercase
+    const lowerName = categoryName.toLowerCase();
+    if (imageMap[lowerName]) {
+      return imageMap[lowerName];
+    }
+    
+    return `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=400&fit=crop&q=80`;
   };
 
-  // Function to get product image - UPDATED
+  // Function to get product image
   const getProductImage = (product) => {
-    console.log('Getting image for product:', {
-      name: product.name,
-      backendImages: product.images,
-      hasImages: product.images && product.images.length > 0
-    });
-
     // Priority 1: Use image from backend if available
     if (product.images && product.images.length > 0) {
       const imageUrl = product.images[0];
-      console.log('Using backend image:', imageUrl);
+      if (imageUrl && !imageUrl.startsWith('http')) {
+        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        return `${API_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+      }
       return imageUrl;
     }
 
@@ -113,7 +155,6 @@ useEffect(() => {
     const imageMap = {
       'apple': 'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=300&h=200&fit=crop',
       'banana': 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=300&h=200&fit=crop',
-      'bananna': 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=300&h=200&fit=crop',
       'orange': 'https://images.unsplash.com/photo-1547514701-42782101795e?w=300&h=200&fit=crop',
       'tomato': 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&h=200&fit=crop',
       'carrot': 'https://images.unsplash.com/photo-1582515073490-39981397c445?w=300&h=200&fit=crop',
@@ -122,35 +163,15 @@ useEffect(() => {
       'beef': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
       'cheese': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop',
       'milk': 'https://images.unsplash.com/photo-1550583721-58731aebf5c5?w=300&h=200&fit=crop',
-      'hallom': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop'
     };
 
     for (const [key, image] of Object.entries(imageMap)) {
       if (lowerName.includes(key)) {
-        console.log('Using fallback image for:', key);
         return image;
       }
     }
 
-    // Priority 3: Use category-based fallback
-    if (product.category && product.category.name) {
-      const categoryImages = {
-        'FRUIT': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&h=200&fit=crop',
-        'Vegetables': 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&h=200&fit=crop',
-        'Meat': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=200&fit=crop',
-        'Chicken': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&h=200&fit=crop',
-        'Cheese': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300&h=200&fit=crop'
-      };
-      
-      const categoryImage = categoryImages[product.category.name];
-      if (categoryImage) {
-        console.log('Using category fallback image:', product.category.name);
-        return categoryImage;
-      }
-    }
-
-    // Priority 4: Default fallback
-    console.log('Using default fallback image');
+    // Priority 3: Default fallback
     return 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80';
   };
 
@@ -161,6 +182,7 @@ useEffect(() => {
 
   // Format date
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -169,7 +191,7 @@ useEffect(() => {
     });
   };
 
-  // Fetch products - UPDATED
+  // Fetch products
   const fetchProducts = async (page = 1) => {
     setLoading(true);
     setError('');
@@ -184,11 +206,10 @@ useEffect(() => {
         // Also fetch category details
         await fetchCategoryDetails(catId);
       } else {
-        // Fetch all products with filters
+        // Fetch all products
         const filters = {
           page,
           limit,
-          category: catId,
           search: searchTerm
         };
         result = await productService.getAllProducts(filters);
@@ -197,20 +218,16 @@ useEffect(() => {
       if (result.success) {
         const data = result.data;
         
-        // UPDATED: Add images to products
-        const productsWithImages = data.products?.map(product => ({
+        // Add images to products
+        const productsWithImages = (data.products || data.data || []).map(product => ({
           ...product,
-          // Use getProductImage function with the entire product object
           image: getProductImage(product)
-        })) || [];
+        }));
         
         setProducts(productsWithImages);
         setTotalPages(data.totalPages || 1);
-        setTotalProducts(data.totalProducts || 0);
+        setTotalProducts(data.totalProducts || productsWithImages.length || 0);
         setCurrentPage(data.currentPage || 1);
-
-        // Debug log
-        console.log('Products loaded with images:', productsWithImages);
       } else {
         setError(result.message);
         setProducts([]);
@@ -234,7 +251,8 @@ useEffect(() => {
   // Handle sort change
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
-    // Implement sorting logic here
+    // You can implement sorting logic here
+    console.log('Sort changed to:', e.target.value);
   };
 
   // Handle page change
@@ -244,10 +262,16 @@ useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Handle product click
+  const handleProductClick = (productId) => {
+    navigate(`/product/${productId}`);
+  };
+
   // Initial fetch
   useEffect(() => {
+    console.log('🔄 useEffect triggered - fetching products');
     fetchProducts(currentPage);
-  }, [location.search, categoryId]);
+  }, [categoryId, location.search]);
 
   const handleLogout = () => {
     authService.logout();
@@ -278,13 +302,68 @@ useEffect(() => {
           <div className="navbar-auth">
             {isAuthenticated ? (
               <>
+                {/* Cart Icon */}
+                <div className="cart-wrapper">
+                  <Link to="/cart" className="cart-icon">
+                    🛒
+                    {cartCount > 0 && (
+                      <span className="cart-count-badge">{cartCount}</span>
+                    )}
+                  </Link>
+                  {cartCount > 0 && (
+                    <div className="cart-dropdown">
+                      <div className="cart-dropdown-header">
+                        <span>Cart ({cartCount} items)</span>
+                        <Link to="/cart">View Cart</Link>
+                      </div>
+                      <div className="cart-dropdown-items">
+                        {cart.slice(0, 3).map(item => (
+                          <div key={item._id} className="cart-dropdown-item">
+                            <img src={item.image} alt={item.name} />
+                            <div className="cart-item-info">
+                              <span className="cart-item-name">{item.name}</span>
+                              <span className="cart-item-price">
+                                ${item.discount > 0 
+                                  ? ((item.price * (100 - item.discount)) / 100).toFixed(2)
+                                  : item.price.toFixed(2)
+                                } x {item.quantity || 1}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        {cart.length > 3 && (
+                          <div className="cart-dropdown-more">
+                            +{cart.length - 3} more items
+                          </div>
+                        )}
+                      </div>
+                      <div className="cart-dropdown-footer">
+                        <div className="cart-total">
+                          <span>Total:</span>
+                          <span>
+                            $
+                            {cart.reduce((total, item) => {
+                              const price = item.discount > 0 
+                                ? item.price * (100 - item.discount) / 100 
+                                : item.price;
+                              return total + (price * (item.quantity || 1));
+                            }, 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <span className="welcome-text">
                   Welcome, {currentUser?.name || 'User'}!
                 </span>
+                
                 <Link to="/profile" className="auth-btn profile-btn">
                   <span className="btn-icon">👤</span>
                   Profile
                 </Link>
+                
                 <button onClick={handleLogout} className="auth-btn logout-btn">
                   <span className="btn-icon">🚪</span>
                   Logout
@@ -310,26 +389,40 @@ useEffect(() => {
       <main className="products-main">
         {/* Header Section */}
         <header className="products-header">
-          {category ? (
+          {category && categoryId ? (
             <div className="category-banner">
               <div className="category-info">
                 <h1 className="category-title">{category.name}</h1>
-                <p className="category-description">{category.description}</p>
-                <p className="products-count">{totalProducts} products available</p>
+                <p className="category-description">
+                  {category.description || 'Browse products in this category'}
+                </p>
+                <p className="products-count">
+                  {totalProducts > 0 
+                    ? `${totalProducts} products available` 
+                    : 'No products available'}
+                </p>
               </div>
               <div className="category-image-wrapper">
                 <img 
                   src={category.image} 
                   alt={category.name}
                   className="category-banner-image"
+                  onError={(e) => {
+                    console.error('Category banner image failed to load');
+                    e.target.src = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=400&fit=crop&q=80';
+                  }}
                 />
               </div>
             </div>
           ) : (
             <div className="page-header">
-              <h1 className="page-title">All Products</h1>
+              <h1 className="page-title">
+                {categoryId ? `Category Products` : 'All Products'}
+              </h1>
               <p className="page-subtitle">
-                Browse our wide selection of products
+                {categoryId 
+                  ? 'Browse products in this category' 
+                  : 'Browse our wide selection of products'}
               </p>
             </div>
           )}
@@ -388,12 +481,19 @@ useEffect(() => {
             </div>
           ) : products.length > 0 ? (
             <>
-              {/* Products Grid */}
+              {/* Products Grid - UPDATED WITH ADD TO CART BUTTONS */}
               <div className="products-grid">
-                {products.map((product) => (
-                  <div key={product._id} className="product-card">
-                    <Link to={`/product/${product._id}`} className="product-link">
-                      <div className="product-image-container">
+                {products.map((product) => {
+                  const isInCart = cart.some(item => item._id === product._id);
+                  const cartItem = cart.find(item => item._id === product._id);
+                  
+                  return (
+                    <div key={product._id} className="product-card">
+                      <div 
+                        className="product-image-container"
+                        onClick={() => handleProductClick(product._id)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <img 
                           src={product.image} 
                           alt={product.name}
@@ -411,12 +511,26 @@ useEffect(() => {
                         {product.status === 'inactive' && (
                           <div className="inactive-badge">Inactive</div>
                         )}
+                        {product.discount > 0 && (
+                          <span className="product-discount">
+                            -{product.discount}%
+                          </span>
+                        )}
                       </div>
+                      
                       <div className="product-content">
-                        <h3 className="product-name">{product.name}</h3>
+                        <h3 
+                          className="product-name"
+                          onClick={() => handleProductClick(product._id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {product.name}
+                        </h3>
+                        
                         <p className="product-description">
-                          {product.description?.substring(0, 60)}...
+                          {product.description?.substring(0, 60) || 'No description available'}...
                         </p>
+                        
                         <div className="product-meta">
                           <span className="product-category">
                             {product.category?.name || 'Uncategorized'}
@@ -425,81 +539,103 @@ useEffect(() => {
                             {formatDate(product.createdAt)}
                           </span>
                         </div>
-                        <div className="product-footer">
-                          <span className="product-price">
-                            {formatPrice(product.price)}
-                          </span>
+                        
+                        <div className="product-price-row">
+                          <div className="product-price">
+                            {product.discount > 0 ? (
+                              <>
+                                <span className="current-price">
+                                  ${((product.price * (100 - product.discount)) / 100).toFixed(2)}
+                                </span>
+                                <span className="original-price">
+                                  ${product.price?.toFixed(2) || '0.00'}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="current-price">
+                                ${product.price?.toFixed(2) || '0.00'}
+                              </span>
+                            )}
+                          </div>
                           <span className="product-stock">
                             Stock: {product.quantity || 'N/A'}
                           </span>
                         </div>
+                        
+                        {/* ADD TO CART BUTTONS - LIKE HOME PAGE */}
+                        <div className="product-actions">
+                          {isAuthenticated ? (
+                            isInCart ? (
+                              <div className="cart-controls">
+                                <button 
+                                  className="cart-action-btn minus"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (cartItem.quantity <= 1) {
+                                      setCart(cart.filter(item => item._id !== product._id));
+                                    } else {
+                                      setCart(cart.map(item =>
+                                        item._id === product._id
+                                          ? { ...item, quantity: item.quantity - 1 }
+                                          : item
+                                      ));
+                                    }
+                                  }}
+                                >
+                                  −
+                                </button>
+                                <span className="cart-quantity">
+                                  {cartItem.quantity} in cart
+                                </span>
+                                <button 
+                                  className="cart-action-btn plus"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addToCart(product);
+                                  }}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
+                              <button 
+                                className="add-to-cart-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToCart(product);
+                                }}
+                              >
+                                🛒 Add to Cart
+                              </button>
+                            )
+                          ) : (
+                            <button 
+                              className="add-to-cart-btn login-required"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert('Please login to add items to cart');
+                                navigate('/login');
+                              }}
+                            >
+                              🔒 Login to Buy
+                            </button>
+                          )}
+                          
+                          <button 
+                            className="view-details-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProductClick(product._id);
+                            }}
+                          >
+                            View Details →
+                          </button>
+                        </div>
                       </div>
-                    </Link>
-                    <button className="add-to-cart-btn">
-                      <span className="cart-icon">🛒</span>
-                      Add to Cart
-                    </button>
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="pagination">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="pagination-btn prev-btn"
-                  >
-                    ← Previous
-                  </button>
-                  
-                  <div className="page-numbers">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`page-btn ${currentPage === pageNum ? 'active' : ''}`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                    
-                    {totalPages > 5 && currentPage < totalPages - 2 && (
-                      <>
-                        <span className="page-dots">...</span>
-                        <button
-                          onClick={() => handlePageChange(totalPages)}
-                          className={`page-btn ${currentPage === totalPages ? 'active' : ''}`}
-                        >
-                          {totalPages}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="pagination-btn next-btn"
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
 
               {/* Results Info */}
               <div className="results-info">
@@ -517,19 +653,23 @@ useEffect(() => {
               <p>
                 {searchTerm 
                   ? `No products match "${searchTerm}". Try a different search term.`
-                  : 'No products are available in this category.'
+                  : category
+                    ? `No products available in ${category.name} category.`
+                    : 'No products are available at the moment.'
                 }
               </p>
               <div className="no-products-actions">
                 <Link to="/categories" className="back-to-categories-btn">
                   ← Browse Categories
                 </Link>
-                <button 
-                  onClick={() => setSearchTerm('')}
-                  className="clear-filters-btn"
-                >
-                  Clear Filters
-                </button>
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm('')}
+                    className="clear-filters-btn"
+                  >
+                    Clear Search
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -558,6 +698,7 @@ useEffect(() => {
             {isAuthenticated ? (
               <>
                 <Link to="/profile" className="footer-link">My Profile</Link>
+                <Link to="/cart" className="footer-link">My Cart ({cartCount})</Link>
                 <Link to="/orders" className="footer-link">My Orders</Link>
                 <button onClick={handleLogout} className="footer-link logout-link">
                   Logout

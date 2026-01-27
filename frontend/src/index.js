@@ -20,8 +20,8 @@ root.render(
         <Route path="/categories" element={<Categories />} />
         <Route path="/products" element={<Products />} />
         <Route path="/products/category/:categoryId" element={<Products />} />
-         <Route path="/product/:productId" element={<ProductDetail />} />
-        {/* Default redirect - IMPORTANT: This should be LAST */}
+        <Route path="/product/:productId" element={<ProductDetail />} />
+        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

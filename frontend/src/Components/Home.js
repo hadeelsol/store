@@ -1,4 +1,4 @@
-// frontend/src/pages/Home.js
+// frontend/src/Components/Home.js
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import authService from '../Components/auth';
@@ -21,30 +21,87 @@ const Home = () => {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState('');
   
-  // Shopping cart state
-  const [cart, setCart] = useState(() => {
-    // Initialize cart from localStorage
-    const savedCart = localStorage.getItem('nexusmart_cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  // Shopping cart state - Now using BACKEND CART
+  const [cart, setCart] = useState([]);
   const [cartCount, setCartCount] = useState(0);
+  const [loadingCart, setLoadingCart] = useState(false);
   
   // Refs for scrolling
   const categoriesContainerRef = useRef(null);
-
-  // Calculate cart count whenever cart changes
-  useEffect(() => {
-    const count = cart.reduce((total, item) => total + (item.quantity || 1), 0);
-    setCartCount(count);
-    // Save cart to localStorage
-    localStorage.setItem('nexusmart_cart', JSON.stringify(cart));
-  }, [cart]);
 
   // Fetch categories and featured products on component mount
   useEffect(() => {
     fetchCategories();
     fetchFeaturedProducts();
-  }, []);
+    if (isAuthenticated) {
+      fetchCartData();
+    }
+  }, [isAuthenticated]);
+
+  // Function to fetch cart data from backend
+  const fetchCartData = async () => {
+    if (!isAuthenticated) return;
+    
+    setLoadingCart(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/cart', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          // Transform backend cart items to match frontend format
+          const cartItems = result.data.items?.map(item => ({
+            _id: item.product?._id || item.productId,
+            name: item.product?.name || 'Product',
+            price: item.price || 0,
+            quantity: item.quantity || 1,
+            image: item.product?.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80',
+            discount: item.product?.discount || 0
+          })) || [];
+          
+          setCart(cartItems);
+          
+          // Calculate total count
+          const totalCount = cartItems.reduce((total, item) => total + (item.quantity || 1), 0);
+          setCartCount(totalCount);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+    } finally {
+      setLoadingCart(false);
+    }
+  };
+
+  // Also fetch just the cart count (for navbar)
+  const fetchCartCount = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/cart/count', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setCartCount(result.count || 0);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching cart count:', error);
+    }
+  };
 
   const getCategoryImage = (categoryName) => {
     if (!categoryName) return `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80`;
@@ -161,32 +218,160 @@ const Home = () => {
     }
   };
 
-  // SHOPPING CART FUNCTIONS
-  const addToCart = (product) => {
+  // SHOPPING CART FUNCTIONS - UPDATED TO USE BACKEND
+  const addToCart = async (product) => {
     if (!isAuthenticated) {
       alert('Please login to add items to cart');
       navigate('/login');
       return;
     }
     
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item._id === product._id);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/cart/add', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          productId: product._id, 
+          quantity: 1 
+        })
+      });
       
-      if (existingItem) {
-        // Increase quantity if item already exists
-        return prevCart.map(item =>
-          item._id === product._id
-            ? { ...item, quantity: (item.quantity || 1) + 1 }
-            : item
-        );
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update local cart state for immediate UI update
+        setCart(prevCart => {
+          const existingItem = prevCart.find(item => item._id === product._id);
+          
+          if (existingItem) {
+            return prevCart.map(item =>
+              item._id === product._id
+                ? { ...item, quantity: (item.quantity || 1) + 1 }
+                : item
+            );
+          } else {
+            return [...prevCart, { 
+              ...product, 
+              quantity: 1,
+              image: product.image || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=200&fit=crop&q=80'
+            }];
+          }
+        });
+        
+        // Update cart count
+        setCartCount(prev => prev + 1);
+        
+        alert(`✅ ${product.name} added to cart!`);
       } else {
-        // Add new item to cart
-        return [...prevCart, { ...product, quantity: 1 }];
+        alert(result.message || 'Failed to add to cart');
       }
-    });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Failed to add item to cart. Please try again.');
+    }
+  };
+
+  const updateCartQuantity = async (productId, newQuantity) => {
+    if (!isAuthenticated) return;
     
-    // Show success message
-    alert(`✅ ${product.name} added to cart!`);
+    if (newQuantity < 1) {
+      // Remove item if quantity is 0
+      removeFromCart(productId);
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      // First find the cart item ID
+      const cartResponse = await fetch('/api/cart', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (cartResponse.ok) {
+        const cartResult = await cartResponse.json();
+        if (cartResult.success) {
+          const cartItem = cartResult.data.items?.find(item => 
+            item.product?._id === productId || item.productId === productId
+          );
+          
+          if (cartItem && cartItem._id) {
+            // Update quantity on backend
+            await fetch(`/api/cart/item/${cartItem._id}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ quantity: newQuantity })
+            });
+            
+            // Update local state
+            setCart(prevCart =>
+              prevCart.map(item =>
+                item._id === productId
+                  ? { ...item, quantity: newQuantity }
+                  : item
+              )
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating cart:', error);
+    }
+  };
+
+  const removeFromCart = async (productId) => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      // First find the cart item ID
+      const cartResponse = await fetch('/api/cart', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (cartResponse.ok) {
+        const cartResult = await cartResponse.json();
+        if (cartResult.success) {
+          const cartItem = cartResult.data.items?.find(item => 
+            item.product?._id === productId || item.productId === productId
+          );
+          
+          if (cartItem && cartItem._id) {
+            // Remove from backend
+            await fetch(`/api/cart/item/${cartItem._id}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            // Update local state
+            const itemToRemove = cart.find(item => item._id === productId);
+            const quantityToRemove = itemToRemove?.quantity || 1;
+            
+            setCart(prevCart => prevCart.filter(item => item._id !== productId));
+            setCartCount(prev => Math.max(0, prev - quantityToRemove));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+    }
   };
 
   const handleCategoryClick = (categoryId) => {
@@ -363,7 +548,6 @@ const Home = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
           <h1 className="hero-title">Welcome to NexusMart</h1>
@@ -472,7 +656,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured Products Section - UPDATED WITH ADD TO CART */}
+      {/* Featured Products Section - UPDATED WITH BACKEND CART */}
       <section className="products-section">
         <div className="section-header">
           <h2 className="section-title">Featured Products</h2>
@@ -564,14 +748,11 @@ const Home = () => {
                               <button 
                                 className="cart-action-btn minus"
                                 onClick={() => {
-                                  if (cartItem.quantity <= 1) {
-                                    setCart(cart.filter(item => item._id !== product._id));
+                                  const newQuantity = (cartItem.quantity || 1) - 1;
+                                  if (newQuantity <= 0) {
+                                    removeFromCart(product._id);
                                   } else {
-                                    setCart(cart.map(item =>
-                                      item._id === product._id
-                                        ? { ...item, quantity: item.quantity - 1 }
-                                        : item
-                                    ));
+                                    updateCartQuantity(product._id, newQuantity);
                                   }
                                 }}
                               >

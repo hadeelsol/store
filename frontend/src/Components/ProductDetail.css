@@ -63,7 +63,7 @@
 .logo-text {
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #5d88d3 0%, #545c6c 100%);
+  background: linear-gradient(135deg, #5d88d3 0%, #7f899c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -116,12 +116,12 @@
 
 .login-btn {
   background: transparent;
-  color: #5d88d3;
+  color: #82a0d5;
   border: 1px solid #5d88d3;
 }
 
 .login-btn:hover {
-  background: #5d88d3;
+  background: #81a0d6;
   color: white;
 }
 

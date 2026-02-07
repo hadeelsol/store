@@ -1,7 +1,6 @@
 import api from './api';
 
 export const userService = {
-  // Get all users (admin only)
   getAllUsers: async () => {
     try {
       const response = await api.get('/users');
@@ -11,7 +10,6 @@ export const userService = {
     }
   },
 
-  // Get user by ID (admin only)
   getUserById: async (id) => {
     try {
       const response = await api.get(`/users/${id}`);
@@ -21,7 +19,6 @@ export const userService = {
     }
   },
 
-  // Create user (admin only)
   createUser: async (userData) => {
     try {
       const response = await api.post('/users', userData);
@@ -31,7 +28,6 @@ export const userService = {
     }
   },
 
-  // Update user (admin only)
   updateUser: async (id, userData) => {
     try {
       const response = await api.put(`/users/${id}`, userData);
@@ -41,7 +37,6 @@ export const userService = {
     }
   },
 
-  // Delete user (admin only)
   deleteUser: async (id) => {
     try {
       const response = await api.delete(`/users/${id}`);

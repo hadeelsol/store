@@ -13,7 +13,6 @@ export const productService = {
       
       const url = `/products?${params.toString()}`;
       const response = await api.get(url);
-      
       console.log('✅ Products fetched successfully:', response.data);
       return {
         success: true,
@@ -30,7 +29,6 @@ export const productService = {
     }
   },
 
-  // Get products by category ID
   getProductsByCategory: async (categoryId, page = 1, limit = 10) => {
     try {
       console.log('📦 Fetching products for category:', categoryId);

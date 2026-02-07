@@ -194,6 +194,21 @@ async function updateOrderStatus(orderId, status) {
   }
 }
 
+orderSchema.pre('validate', function(next) {
+  console.log('🔧 Order validation middleware running');
+  if (!this.orderNumber) {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    this.orderNumber = `ORD${year}${month}${day}${random}`;
+    console.log('✅ Generated order number:', this.orderNumber);
+  }
+  
+});
+
+
 module.exports = {
   createOrderFromCart,
   getCustomerOrders,
